@@ -20,4 +20,8 @@ class InvoiceService(private val dal: AntaeusDal) {
     fun fetchAllPending(): List<Invoice> {
         return dal.fetchPendingInvoices()
     }
+
+    fun updateInvoiceStatus(id: Int): Invoice {
+        return dal.updateInvoiceStatus(id) ?: throw InvoiceNotFoundException(id)
+    }
 }
