@@ -60,6 +60,12 @@ class AntaeusRest(
                         get {
                             it.json(invoiceService.fetchAll())
                         }
+                        path("pending") {
+                            // URL: /rest/v1/invoices/pending
+                            get {
+                                it.json(invoiceService.fetchAllPending())
+                            }
+                        }
 
                         // URL: /rest/v1/invoices/{:id}
                         get(":id") {
