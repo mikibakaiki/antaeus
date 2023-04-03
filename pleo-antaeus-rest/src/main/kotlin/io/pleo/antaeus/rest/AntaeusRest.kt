@@ -5,11 +5,15 @@
 package io.pleo.antaeus.rest
 
 import io.javalin.Javalin
-import io.javalin.apibuilder.ApiBuilder.get
-import io.javalin.apibuilder.ApiBuilder.path
+import io.javalin.apibuilder.ApiBuilder.*
+import io.javalin.core.util.RouteOverviewUtil.metaInfo
 import io.pleo.antaeus.core.exceptions.EntityNotFoundException
+import io.pleo.antaeus.core.exceptions.NoPendingInvoiceException
+import io.pleo.antaeus.core.exceptions.UnableToChargeInvoiceException
+import io.pleo.antaeus.core.services.BillingService
 import io.pleo.antaeus.core.services.CustomerService
 import io.pleo.antaeus.core.services.InvoiceService
+import io.pleo.antaeus.models.InvoiceStatus
 import mu.KotlinLogging
 
 private val logger = KotlinLogging.logger {}
@@ -17,7 +21,8 @@ private val thisFile: () -> Unit = {}
 
 class AntaeusRest(
     private val invoiceService: InvoiceService,
-    private val customerService: CustomerService
+    private val customerService: CustomerService,
+    private val billingService: BillingService
 ) : Runnable {
 
     override fun run() {
@@ -60,19 +65,13 @@ class AntaeusRest(
                         get {
                             it.json(invoiceService.fetchAll())
                         }
-                        path("pending") {
-                            // URL: /rest/v1/invoices/pending
-                            get {
-                                it.json(invoiceService.fetchAllPending())
-                            }
-                        }
 
                         // URL: /rest/v1/invoices/{:id}
                         get(":id") {
-                            it.json(invoiceService.fetch(it.pathParam("id").toInt()))
+                            val id = it.pathParam("id").toInt()
+                            it.json(invoiceService.fetch(id))
                         }
                     }
-
                     path("customers") {
                         // URL: /rest/v1/customers
                         get {
@@ -82,6 +81,19 @@ class AntaeusRest(
                         // URL: /rest/v1/customers/{:id}
                         get(":id") {
                             it.json(customerService.fetch(it.pathParam("id").toInt()))
+                        }
+                    }
+
+                    path("billing") {
+                        get {
+                            try {
+                                val pendingInvoices = billingService.processPendingInvoices()
+                                it.json(pendingInvoices)
+                            } catch (e: UnableToChargeInvoiceException) {
+                                it.json("There was a problem: ${e.message}")
+                            } catch (e: NoPendingInvoiceException) {
+                                it.json("HURRAY! ${e.message}")
+                            }
                         }
                     }
                 }
