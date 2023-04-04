@@ -6,12 +6,11 @@ package io.pleo.antaeus.rest
 
 import io.javalin.Javalin
 import io.javalin.apibuilder.ApiBuilder.*
-import io.pleo.antaeus.core.exceptions.EntityNotFoundException
-import io.pleo.antaeus.core.exceptions.NoPendingInvoiceException
-import io.pleo.antaeus.core.exceptions.UnableToChargeInvoiceException
+import io.pleo.antaeus.core.exceptions.*
 import io.pleo.antaeus.core.services.BillingService
 import io.pleo.antaeus.core.services.CustomerService
 import io.pleo.antaeus.core.services.InvoiceService
+import io.pleo.antaeus.models.InvoiceStatus
 import mu.KotlinLogging
 
 private val logger = KotlinLogging.logger {}
@@ -64,6 +63,9 @@ class AntaeusRest(
                             it.json(invoiceService.fetchAll())
                         }
 
+                        /**
+                         * Get all the pending invoices
+                         */
                         // URL: /rest/v1/invoices/pending
                         path ("pending") {
                             get {
@@ -89,31 +91,73 @@ class AntaeusRest(
                         get(":id") {
                             it.json(customerService.fetch(it.pathParam("id").toInt()))
                         }
+
+
+                        /**
+                         * Get all the invoices for a given customer
+                         */
+                        // URL: /rest/v1/customers/{:id}/invoices
+                        get(":id/invoices"){
+                            val id = it.pathParam("id").toInt()
+                            it.json(customerService.fetchAllInvoicesByCustomerId(id))
+                        }
+
+                        /**
+                         * Get all the invoices for a given customer with a given status.
+                         */
+                        // URL: /rest/v1/customers/{:id}/invoices/{:status}
+                        get(":id/invoices/:status"){
+                            val id = it.pathParam("id").toInt()
+                            val status = it.pathParam("status").toUpperCase()
+                            if (InvoiceStatus.values().map { invStatus -> invStatus.toString()}.contains(status)) {
+                                it.json(customerService.fetchAllInvoicesByCustomerIdAndStatus(id, InvoiceStatus.valueOf(status)))
+                            } else {
+                                it.html("<h3>The status '$status' does not exist. Please use either 'pending' or 'paid'</h3>")
+                            }
+                        }
                     }
 
                     path("billing") {
-                        get {
+                        /**
+                         * Charge every PENDING invoice.
+                         * It will return a list with the invoices that were not charged due to errors.
+                         */
+                        // URL: /rest/v1/billing
+                        post {
                             try {
                                 val pendingInvoices = billingService.processAllPendingInvoices()
                                 if (pendingInvoices.isEmpty()) {
-                                    it.html("<h1>Successfully Charged all pending invoices</h1>")
+                                    it.result("Successfully Charged all pending invoices")
                                 } else {
-                                    val html = "<h2>Here's a list of all invoices that failed</h2>"
+                                    val str = "Here's a list of all invoices that failed"
 
-                                    it.result("$html\n\n$pendingInvoices")
+                                    it.result("$str\n\n$pendingInvoices")
                                 }
-
                             } catch (e: UnableToChargeInvoiceException) {
-                                it.html("<h1>There was a problem: ${e.message}</h1>")
+                                it.result("There was a problem: ${e.message}")
                             } catch (e: NoPendingInvoiceException) {
-                                it.html("<h1>HURRAY! ${e.message}</h1>")
+                                it.result("HURRAY! ${e.message}")
+                            } catch (e: WrongDateToChargeException) {
+                                it.result("Oops! ${e.message}")
                             }
                         }
 
-                        // URL: /rest/v1/billing/:id
-                        get(":id") {
+                        /**
+                         * Charge an invoice with a given id
+                         */
+                        // URL: /rest/v1/billing/{:id}
+                        post(":id") {
                             val id = it.pathParam("id").toInt()
-                            //it.json()
+                            try {
+                                val res = billingService.processPendingInvoice(id)
+                                it.result("$res")
+                            } catch (e: InvoiceNotFoundException) {
+                                it.result("There was a problem: ${e.message}")
+                            } catch (e: UnableToChargeInvoiceException) {
+                                it.result("There was a problem: ${e.message}")
+                            } catch (e: FailedUpdatingStatusException) {
+                                it.result("There was a problem: ${e.message}")
+                            }
                         }
                     }
                 }
