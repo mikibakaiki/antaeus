@@ -1,9 +1,6 @@
 package io.pleo.antaeus.core.services
 
-import io.pleo.antaeus.core.exceptions.FailedUpdatingStatusException
-import io.pleo.antaeus.core.exceptions.NoPendingInvoiceException
-import io.pleo.antaeus.core.exceptions.UnableToChargeInvoiceException
-import io.pleo.antaeus.core.exceptions.WrongDateToChargeException
+import io.pleo.antaeus.core.exceptions.*
 import io.pleo.antaeus.core.external.PaymentProvider
 import io.pleo.antaeus.models.Invoice
 import io.pleo.antaeus.models.InvoiceStatus
@@ -15,16 +12,8 @@ class BillingService(
     private val invoiceService: InvoiceService
 ) {
     private val logger = KotlinLogging.logger {}
-    private var failedList: MutableList<Invoice> = mutableListOf()
     fun processAllPendingInvoices(): List<Invoice> {
-        // This code ensures that the charging only occurs at the first of the month
-        // However, I will leave it commented for testing purposes: it makes it easier to test the functionality.
-
-        // val currentDate = LocalDate.now()
-        // if (currentDate.dayOfMonth != 1) {
-        //     throw WrongDateToChargeException()
-        // }
-
+        var failedList: MutableList<Invoice> = mutableListOf()
         val invoices = invoiceService.fetchAllPending()
         if (invoices.isEmpty()) {
             throw NoPendingInvoiceException()
@@ -40,15 +29,42 @@ class BillingService(
         }
         return failedList
     }
-    private fun chargeInvoice(inv: Invoice): Invoice {
-        val successfullyCharged = paymentProvider.charge(inv)
-        logger.info("Invoice ${inv.id} charged? $successfullyCharged")
-        if (!successfullyCharged) {
-            logger.info("Failed at invoice ${inv.id}")
-            throw UnableToChargeInvoiceException(inv)
-        }
+
+    fun processPendingInvoice(id:Int): String {
         try {
+            val invoice = invoiceService.fetch(id)
+            if (invoice.status == InvoiceStatus.PENDING) {
+                chargeInvoice(invoice)
+            } else {
+                return "The invoice #$id was already paid!"
+            }
+            return "The invoice #$id was paid!"
+        } catch (e: InvoiceNotFoundException) {
+            logger.info("Error: $e")
+            throw e
+        } catch (e: UnableToChargeInvoiceException) {
+            throw e
+        } catch (e: FailedUpdatingStatusException) {
+            throw e
+        }
+    }
+    private fun chargeInvoice(inv: Invoice): Invoice {
+        try {
+            paymentProvider.charge(inv)
+            logger.info("Invoice ${inv.id} was charged")
             return invoiceService.updateInvoiceStatus(inv.id, InvoiceStatus.PAID)
+        } catch (e: CustomerNotFoundException) {
+            logger.info("Error: $e")
+            throw UnableToChargeInvoiceException(inv, e.message)
+        } catch (e: CurrencyMismatchException) {
+            logger.info("Error: $e")
+            throw UnableToChargeInvoiceException(inv, e.message)
+        } catch (e: NetworkException) {
+            logger.info("Error: $e")
+            throw UnableToChargeInvoiceException(inv, e.message)
+        } catch (e: InsufficientBalanceException) {
+            logger.info("Error: $e")
+            throw UnableToChargeInvoiceException(inv, e.message)
         } catch (e: FailedUpdatingStatusException) {
             paymentProvider.cancelCharge(inv)
             throw e
