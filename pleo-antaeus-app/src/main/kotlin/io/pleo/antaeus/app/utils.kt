@@ -1,11 +1,14 @@
 
+import io.pleo.antaeus.core.exceptions.CurrencyMismatchException
+import io.pleo.antaeus.core.exceptions.CustomerNotFoundException
+import io.pleo.antaeus.core.exceptions.InsufficientBalanceException
+import io.pleo.antaeus.core.exceptions.NetworkException
 import io.pleo.antaeus.core.external.PaymentProvider
 import io.pleo.antaeus.data.AntaeusDal
 import io.pleo.antaeus.models.Currency
 import io.pleo.antaeus.models.Invoice
 import io.pleo.antaeus.models.InvoiceStatus
 import io.pleo.antaeus.models.Money
-import org.jetbrains.exposed.sql.Op
 import java.math.BigDecimal
 import kotlin.random.Random
 
@@ -35,7 +38,19 @@ internal fun setupInitialData(dal: AntaeusDal) {
 internal fun getPaymentProvider(): PaymentProvider {
     return object : PaymentProvider {
         override fun charge(invoice: Invoice): Boolean {
-                return Random.nextBoolean()
+            // I added this randomizer of exceptions, so it would better emulate the real-world scenario
+            // The logic is:
+            //      if the random boolean to be returned is false:
+            //          pick randomly an exception and throw it - something went wrong with the payment
+            //      else return true - all was fine with the payment
+
+            val exceptions = listOf(CustomerNotFoundException(invoice.customerId), CurrencyMismatchException(invoice.id, invoice.customerId), NetworkException(), InsufficientBalanceException(invoice))
+            val result = Random.nextBoolean()
+            if (!result) {
+                val randomIndex = Random.nextInt(exceptions.size)
+                throw exceptions[randomIndex]
+            }
+            return result
         }
 
         override fun cancelCharge(invoice: Invoice): Boolean {
