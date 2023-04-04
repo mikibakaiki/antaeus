@@ -6,14 +6,12 @@ package io.pleo.antaeus.rest
 
 import io.javalin.Javalin
 import io.javalin.apibuilder.ApiBuilder.*
-import io.javalin.core.util.RouteOverviewUtil.metaInfo
 import io.pleo.antaeus.core.exceptions.EntityNotFoundException
 import io.pleo.antaeus.core.exceptions.NoPendingInvoiceException
 import io.pleo.antaeus.core.exceptions.UnableToChargeInvoiceException
 import io.pleo.antaeus.core.services.BillingService
 import io.pleo.antaeus.core.services.CustomerService
 import io.pleo.antaeus.core.services.InvoiceService
-import io.pleo.antaeus.models.InvoiceStatus
 import mu.KotlinLogging
 
 private val logger = KotlinLogging.logger {}
@@ -66,11 +64,20 @@ class AntaeusRest(
                             it.json(invoiceService.fetchAll())
                         }
 
+                        // URL: /rest/v1/invoices/pending
+                        path ("pending") {
+                            get {
+                                it.json(invoiceService.fetchAllPending())
+                            }
+                        }
+
                         // URL: /rest/v1/invoices/{:id}
                         get(":id") {
                             val id = it.pathParam("id").toInt()
                             it.json(invoiceService.fetch(id))
                         }
+
+
                     }
                     path("customers") {
                         // URL: /rest/v1/customers
@@ -87,13 +94,26 @@ class AntaeusRest(
                     path("billing") {
                         get {
                             try {
-                                val pendingInvoices = billingService.processPendingInvoices()
-                                it.json(pendingInvoices)
+                                val pendingInvoices = billingService.processAllPendingInvoices()
+                                if (pendingInvoices.isEmpty()) {
+                                    it.html("<h1>Successfully Charged all pending invoices</h1>")
+                                } else {
+                                    val html = "<h2>Here's a list of all invoices that failed</h2>"
+
+                                    it.result("$html\n\n$pendingInvoices")
+                                }
+
                             } catch (e: UnableToChargeInvoiceException) {
-                                it.json("There was a problem: ${e.message}")
+                                it.html("<h1>There was a problem: ${e.message}</h1>")
                             } catch (e: NoPendingInvoiceException) {
-                                it.json("HURRAY! ${e.message}")
+                                it.html("<h1>HURRAY! ${e.message}</h1>")
                             }
+                        }
+
+                        // URL: /rest/v1/billing/:id
+                        get(":id") {
+                            val id = it.pathParam("id").toInt()
+                            //it.json()
                         }
                     }
                 }
