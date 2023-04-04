@@ -44,7 +44,10 @@ internal fun getPaymentProvider(): PaymentProvider {
             //          pick randomly an exception and throw it - something went wrong with the payment
             //      else return true - all was fine with the payment
 
-            val exceptions = listOf(CustomerNotFoundException(invoice.customerId), CurrencyMismatchException(invoice.id, invoice.customerId), NetworkException(), InsufficientBalanceException(invoice))
+            // NOTE: removed the CurrencyMismatchException(invoice.id, invoice.customerId)
+            // because in this case, every invoice is created with its customer's currency.
+            // However, this could be present in a real-world scenario.
+            val exceptions = listOf(CustomerNotFoundException(invoice.customerId), NetworkException(), InsufficientBalanceException(invoice))
             val result = Random.nextBoolean()
             if (!result) {
                 val randomIndex = Random.nextInt(exceptions.size)
