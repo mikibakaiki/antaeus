@@ -5,6 +5,7 @@ import io.pleo.antaeus.models.Currency
 import io.pleo.antaeus.models.Invoice
 import io.pleo.antaeus.models.InvoiceStatus
 import io.pleo.antaeus.models.Money
+import org.jetbrains.exposed.sql.Op
 import java.math.BigDecimal
 import kotlin.random.Random
 
@@ -35,6 +36,10 @@ internal fun getPaymentProvider(): PaymentProvider {
     return object : PaymentProvider {
         override fun charge(invoice: Invoice): Boolean {
                 return Random.nextBoolean()
+        }
+
+        override fun cancelCharge(invoice: Invoice): Boolean {
+            return true
         }
     }
 }
