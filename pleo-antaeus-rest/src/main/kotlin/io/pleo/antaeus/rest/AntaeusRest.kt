@@ -99,7 +99,7 @@ class AntaeusRest(
                         // URL: /rest/v1/customers/{:id}/invoices
                         get(":id/invoices"){
                             val id = it.pathParam("id").toInt()
-                            it.json(customerService.fetchAllInvoicesByCustomerId(id))
+                            it.json(invoiceService.fetchAllInvoicesByCustomerId(id))
                         }
 
                         /**
@@ -110,7 +110,7 @@ class AntaeusRest(
                             val id = it.pathParam("id").toInt()
                             val status = it.pathParam("status").toUpperCase()
                             if (InvoiceStatus.values().map { invStatus -> invStatus.toString()}.contains(status)) {
-                                it.json(customerService.fetchAllInvoicesByCustomerIdAndStatus(id, InvoiceStatus.valueOf(status)))
+                                it.json(invoiceService.fetchAllInvoicesByCustomerIdAndStatus(id, InvoiceStatus.valueOf(status)))
                             } else {
                                 it.html("<h3>The status '$status' does not exist. Please use either 'pending' or 'paid'</h3>")
                             }
@@ -135,10 +135,10 @@ class AntaeusRest(
                                 }
                             } catch (e: UnableToChargeInvoiceException) {
                                 it.result("There was a problem: ${e.message}")
+                                it.status(500)
                             } catch (e: NoPendingInvoiceException) {
-                                it.result("HURRAY! ${e.message}")
-                            } catch (e: WrongDateToChargeException) {
-                                it.result("Oops! ${e.message}")
+                                it.result("There was a problem ${e.message}")
+                                it.status(404)
                             }
                         }
 
@@ -150,13 +150,16 @@ class AntaeusRest(
                             val id = it.pathParam("id").toInt()
                             try {
                                 val res = billingService.processPendingInvoice(id)
-                                it.result("$res")
+                                it.json(res)
                             } catch (e: InvoiceNotFoundException) {
-                                it.result("There was a problem: ${e.message}")
+                                it.json("There was a problem: ${e.message}")
+                                it.status(500)
                             } catch (e: UnableToChargeInvoiceException) {
-                                it.result("There was a problem: ${e.message}")
+                                it.json("There was a problem: ${e.message}")
+                                it.status(500)
                             } catch (e: FailedUpdatingStatusException) {
-                                it.result("There was a problem: ${e.message}")
+                                it.json("There was a problem: ${e.message}")
+                                it.status(500)
                             }
                         }
                     }
