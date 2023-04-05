@@ -112,7 +112,8 @@ class AntaeusRest(
                             if (InvoiceStatus.values().map { invStatus -> invStatus.toString()}.contains(status)) {
                                 it.json(invoiceService.fetchAllInvoicesByCustomerIdAndStatus(id, InvoiceStatus.valueOf(status)))
                             } else {
-                                it.html("<h3>The status '$status' does not exist. Please use either 'pending' or 'paid'</h3>")
+                                it.status(500)
+                                it.result("The status '$status' does not exist. Please use either 'pending' or 'paid'")
                             }
                         }
                     }
@@ -137,8 +138,8 @@ class AntaeusRest(
                                 it.result("There was a problem: ${e.message}")
                                 it.status(500)
                             } catch (e: NoPendingInvoiceException) {
-                                it.result("There was a problem ${e.message}")
-                                it.status(404)
+                                it.result("There was a problem: ${e.message}")
+                                it.status(500)
                             }
                         }
 
