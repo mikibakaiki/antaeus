@@ -33,4 +33,12 @@ class InvoiceService(private val dal: AntaeusDal) {
         return updatedInvoice
 
     }
+
+    fun fetchAllInvoicesByCustomerId(customerId: Int): List<Invoice> {
+        return dal.fetchAllInvoicesByCustomerId(customerId);
+    }
+
+    fun fetchAllInvoicesByCustomerIdAndStatus(customerId: Int, status: InvoiceStatus): List<Invoice> {
+        return dal.fetchAllInvoicesByCustomerIdAndInvoiceStatus(customerId, status)
+    }
 }

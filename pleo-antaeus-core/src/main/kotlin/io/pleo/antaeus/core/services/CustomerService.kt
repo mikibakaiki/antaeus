@@ -18,13 +18,4 @@ class CustomerService(private val dal: AntaeusDal) {
     fun fetch(id: Int): Customer {
         return dal.fetchCustomer(id) ?: throw CustomerNotFoundException(id)
     }
-
-    fun fetchAllInvoicesByCustomerId(id:Int): List<Invoice> {
-        return dal.fetchAllInvoicesByCustomerId(id);
-    }
-
-    fun fetchAllInvoicesByCustomerIdAndStatus(id: Int, status: InvoiceStatus): List<Invoice> {
-        return dal.fetchAllInvoicesByCustomerIdAndInvoiceStatus(id, status)
-    }
-
 }
