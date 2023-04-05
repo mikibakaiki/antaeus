@@ -20,7 +20,8 @@ class BillingService(
         }
         for (invoice in invoices) {
             try {
-                chargeInvoice(invoice)
+                val updatedInvoice = chargeInvoice(invoice)
+                logger.info("$updatedInvoice was charged and updated")
             } catch (e: UnableToChargeInvoiceException) {
                 failedList.add(invoice)
             } catch (e: FailedUpdatingStatusException) {
@@ -34,11 +35,11 @@ class BillingService(
         try {
             val invoice = invoiceService.fetch(id)
             if (invoice.status == InvoiceStatus.PENDING) {
-                chargeInvoice(invoice)
+                val updatedInvoice = chargeInvoice(invoice)
+                return "$updatedInvoice was paid!"
             } else {
-                return "The invoice #$id was already paid!"
+                return "$invoice was already paid!"
             }
-            return "The invoice #$id was paid!"
         } catch (e: InvoiceNotFoundException) {
             logger.info("Error: $e")
             throw e
@@ -54,9 +55,6 @@ class BillingService(
             logger.info("Invoice ${inv.id} was charged")
             return invoiceService.updateInvoiceStatus(inv.id, InvoiceStatus.PAID)
         } catch (e: CustomerNotFoundException) {
-            logger.info("Error: $e")
-            throw UnableToChargeInvoiceException(inv, e.message)
-        } catch (e: CurrencyMismatchException) {
             logger.info("Error: $e")
             throw UnableToChargeInvoiceException(inv, e.message)
         } catch (e: NetworkException) {
