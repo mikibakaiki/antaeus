@@ -21,7 +21,7 @@ services:
     depends_on:
       pleo-antaeus:
         condition: service_healthy
-    # command: cron && tail -f /var/log/cron.log
+    command: sh -c "cron && tail -f /var/log/cron.log"
 
     # command: sh -c "python scheduler_by_id.py"
     # command: sh -c "python scheduler_batch.py ${PERSISTENT:-}"

@@ -26,7 +26,7 @@ RUN touch /var/log/cron.log
 RUN crontab /etc/cron.d/antaeus-cron
 
 # Run this on startup
-CMD cron && tail -f /var/log/cron.log
+#CMD cron && tail -f /var/log/cron.log
 
 
 

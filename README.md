@@ -69,27 +69,34 @@ All i had to do now was create a little script that would:
 
    3.2. Log the result to give visibility.
 
-Wrote a `crontab` file to run this automatically, inside a Docker container _et voilà!_
+I wrote a `crontab` file to run this automatically, inside a Docker container _et voilà!_
 
 :warning: The `crontab` file is programmed to run every minute (`* * * * *`) for testing purposes. To actually run it on the first of the month, at 00h00, we'd change it to `0 0 1 * *`.
 
-PS: The process wasn't so linear :sweat_smile:
+#### PS:
 
-PPS:
+The process wasn't so linear :sweat_smile:
+
+#### PPS:
 
 - I have another script which performs the request to `POST /billing`, which is the bulk charging endpoint.
 - In the docker-compose file, i also leave 2 options commented out: run the `scheduler_by_id.py` or the `scheduler_batch.py`. I'm currently running the `cron` task. [See more](#running-solution)
+- I also made some logic to view invoices of a specific customer, `GET /customers/:id/invoices` and to view all invoices of a specific customer which have a specific status, `GET /customers/:id/invoices/:status`
+- Of course, i also wrote unit tests for all public methods
 
 ### Overall Time
 
-Apr 2nd : 3h
-Apr 3rd : 4h
-Apr 4th: 1h + 3h
-Apr 5th: 2h
-Apr 6th: 2h
-TOTAL: ~15h
+Apr 2nd : ~3h
 
-To run the docker-compose.yml, `PERSISTENT='--persistent' docker-compose up --build`
+Apr 3rd : ~4h
+
+Apr 4th: ~4h
+
+Apr 5th: ~2h
+
+Apr 6th: ~3h
+
+**TOTAL**: ~16h
 
 ## Developing
 
@@ -129,6 +136,64 @@ docker run antaeus
 ```
 
 ### Running solution
+
+#### To run the main solution, with the cron task scheduled, simply execute:
+
+`docker-compose up --build`.
+
+:warning: This will run the `scheduler_by_id.py` script every minute.
+
+#### To immediately run the `scheduler_by_id.py` script:
+
+- Go to the `docker-compose.yml`
+- Comment line 24, which contains: `command: sh -c "cron && tail -f /var/log/cron.log"`
+- Uncomment the line which contains: `command: sh -c "python scheduler_by_id.py"`
+- Run again the command `docker-compose up --build`
+
+#### To immediately run the `scheduler_batch.py` script:
+
+This script accepts an extra, optional flag, `--persistent`, which basically will run the script until no more invoices are left to be paid.
+Running the script without the flag will just charge all `PENDING` invoices in bulk once.
+If you use the flag, the script will charge all `PENDING` invoices and keep trying to charge until all of them are paid.
+
+To run it:
+
+- Go to the `docker-compose.yml`
+- Comment line 24, which contains: `command: sh -c "cron && tail -f /var/log/cron.log"`
+- Uncomment the line which contains: `command: sh -c "python scheduler_batch.py ${PERSISTENT:-}"`
+- **To run the script without the flag**, use `docker-compose up --build`
+- **To use the `--persistent` flag**, run `PERSISTENT='--persistent' docker-compose up --build`
+
+#### List of endpoints and curls
+
+```sh
+GET /invoices
+curl --request GET --url http://localhost:7000/rest/v1/invoices
+
+GET /invoices/:invoiceId
+curl --request GET --url http://localhost:7000/rest/v1/invoices/<invoiceId>
+
+GET /invoices/pending
+curl --request GET --url http://localhost:7000/rest/v1/invoices/pending
+
+GET /customers
+curl --request GET --url http://localhost:7000/rest/v1/customers
+
+GET /customers/:customerId
+curl --request GET --url http://localhost:7000/rest/v1/customers/<customerId>
+
+GET /customers/:customerId/invoices
+curl --request GET --url http://localhost:7000/rest/v1/customers/<customerId>/invoices
+
+GET /customers/:customerId/invoices/:status
+curl --request GET --url http://localhost:7000/rest/v1/customers/<customerId>/invoices/<status>
+
+POST /billing
+curl --request POST --url http://localhost:7000/rest/v1/billing
+
+POST /billing/:invoiceId
+curl --request POST --url http://localhost:7000/rest/v1/billing/<invoiceId>
+```
 
 ### App Structure
 
