@@ -1,0 +1,27 @@
+version: '3.9'
+
+services:
+  pleo-antaeus:
+    container_name: pleo-antaeus
+    build: .
+    ports:
+      - "7000:7000"
+    expose:
+      - 7000
+    healthcheck:
+      test: ["CMD-SHELL", "curl --fail http://pleo-antaeus:7000/rest/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 45s  # 45s before performing health tests
+
+  antaeus-scheduler:
+    build: scheduler-script/
+    container_name: antaeus-scheduler
+    depends_on:
+      pleo-antaeus:
+        condition: service_healthy
+    # command: cron && tail -f /var/log/cron.log
+
+    # command: sh -c "python scheduler_by_id.py"
+    # command: sh -c "python scheduler_batch.py ${PERSISTENT:-}"
