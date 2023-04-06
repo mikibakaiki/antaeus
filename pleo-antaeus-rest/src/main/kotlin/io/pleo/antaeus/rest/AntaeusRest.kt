@@ -128,7 +128,7 @@ class AntaeusRest(
                             try {
                                 val pendingInvoices = billingService.processAllPendingInvoices()
                                 if (pendingInvoices.isEmpty()) {
-                                    it.result("Successfully Charged all pending invoices")
+                                    it.result("Successfully charged all pending invoices")
                                 } else {
                                     val str = "Here's a list of all invoices that failed"
 
