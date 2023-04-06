@@ -66,6 +66,7 @@ All i had to do now was create a little script that would:
 3. Else, for each of these invoices:
 
    3.1. Call `POST /billing/invoice_id`
+
    3.2. Log the result to give visibility.
 
 Wrote a `crontab` file to run this automatically, inside a Docker container _et voilà!_
