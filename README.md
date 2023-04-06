@@ -64,14 +64,16 @@ All i had to do now was create a little script that would:
 1. Call `GET /invoices/pending`
 2. If there were no invoices, `exit`
 3. Else, for each of these invoices:
-   2.1. Call `POST /billing/invoice_id`
-   2.2. Log the result to give visibility.
 
-Wrote a `crontab` file to run this automatically, inside a Docker container _et voi la!_
+   3.1. Call `POST /billing/invoice_id`
+   3.2. Log the result to give visibility.
 
-:warning: the `crontab` file is programmed to run every minute (`* * * * *`) for testing purposes. To actually run it on the first of the month, at 00h00, we'd change it to `0 0 1 * *`.
+Wrote a `crontab` file to run this automatically, inside a Docker container _et voilà!_
+
+:warning: The `crontab` file is programmed to run every minute (`* * * * *`) for testing purposes. To actually run it on the first of the month, at 00h00, we'd change it to `0 0 1 * *`.
 
 PS: The process wasn't so linear :sweat_smile:
+
 PPS:
 
 - I have another script which performs the request to `POST /billing`, which is the bulk charging endpoint.
