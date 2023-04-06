@@ -137,7 +137,7 @@ docker run antaeus
 
 ### Running solution
 
-#### To run the main solution, with the cron task scheduled, simply execute:
+#### To run the main solution, with the `cron` task scheduled, simply execute:
 
 `docker-compose up --build`.
 
@@ -153,8 +153,8 @@ docker run antaeus
 #### To immediately run the `scheduler_batch.py` script:
 
 This script accepts an extra, optional flag, `--persistent`, which basically will run the script until no more invoices are left to be paid.
-Running the script without the flag will just charge all `PENDING` invoices in bulk once.
-If you use the flag, the script will charge all `PENDING` invoices and keep trying to charge until all of them are paid.
+Running the script without the flag will just charge all `PENDING` invoices in bulk _once_.
+If you use the flag, the script will charge all `PENDING` invoices and keep trying to charge _until all of them_ are paid.
 
 To run it:
 
